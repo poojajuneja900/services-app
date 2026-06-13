@@ -1,0 +1,538 @@
+openapi: 3.0.3
+info:
+  title: Service App API
+  description: REST API for managing categories, users, and service listings.
+  version: 1.0.0
+  contact:
+    name: Service App
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+
+tags:
+  - name: Categories
+    description: CRUD operations for service categories
+  - name: Users
+    description: CRUD operations for users
+  - name: Services
+    description: CRUD operations for service listings
+
+paths:
+
+  # ─────────────────────────────────────────
+  # CATEGORIES
+  # ─────────────────────────────────────────
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: Get all categories
+      operationId: getAllCategories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+    post:
+      tags: [Categories]
+      summary: Create a new category
+      operationId: createCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+            example:
+              categoryName: "Home Services"
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /categories/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags: [Categories]
+      summary: Get category by ID
+      operationId: getCategoryById
+      responses:
+        '200':
+          description: Category found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Categories]
+      summary: Update a category
+      operationId: updateCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+            example:
+              categoryName: "Cleaning Services"
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Categories]
+      summary: Delete a category
+      operationId: deleteCategory
+      responses:
+        '204':
+          description: Category deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────
+  # USERS
+  # ─────────────────────────────────────────
+
+  /users:
+    get:
+      tags: [Users]
+      summary: Get all users
+      operationId: getAllUsers
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+    post:
+      tags: [Users]
+      summary: Create a new user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+            example:
+              name: "Pooja Juneja"
+              email: "pooja@example.com"
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      operationId: getUserById
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Users]
+      summary: Update a user
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+            example:
+              name: "Pooja Juneja"
+              email: "pooja.updated@example.com"
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Users]
+      summary: Delete a user
+      operationId: deleteUser
+      responses:
+        '204':
+          description: User deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────
+  # SERVICES
+  # ─────────────────────────────────────────
+
+  /services:
+    get:
+      tags: [Services]
+      summary: Get all services
+      operationId: getAllServices
+      responses:
+        '200':
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceListing'
+
+    post:
+      tags: [Services]
+      summary: Create a new service
+      operationId: createService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceRequest'
+            example:
+              category:
+                id: 1
+              user:
+                id: 1
+              title: "House Cleaning"
+              description: "Full home deep cleaning service"
+              amount: 499.99
+              unit: "per visit"
+      responses:
+        '201':
+          description: Service created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListing'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /services/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags: [Services]
+      summary: Get service by ID
+      operationId: getServiceById
+      responses:
+        '200':
+          description: Service found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListing'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Services]
+      summary: Update a service
+      operationId: updateService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceRequest'
+            example:
+              category:
+                id: 1
+              user:
+                id: 1
+              title: "Premium House Cleaning"
+              description: "Deep cleaning with eco-friendly products"
+              amount: 799.99
+              unit: "per visit"
+      responses:
+        '200':
+          description: Service updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListing'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Services]
+      summary: Delete a service
+      operationId: deleteService
+      responses:
+        '204':
+          description: Service deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /services/by-category/{categoryId}:
+    get:
+      tags: [Services]
+      summary: Get services by category
+      operationId: getServicesByCategory
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: Services in the given category
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceListing'
+
+  /services/by-user/{userId}:
+    get:
+      tags: [Services]
+      summary: Get services by user
+      operationId: getServicesByUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: Services posted by the given user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceListing'
+
+# ─────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────
+
+components:
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+      example: 1
+
+  schemas:
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        categoryName:
+          type: string
+          example: "Home Services"
+
+    CategoryRequest:
+      type: object
+      required: [categoryName]
+      properties:
+        categoryName:
+          type: string
+          example: "Home Services"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Pooja Juneja"
+        email:
+          type: string
+          format: email
+          example: "pooja@example.com"
+
+    UserRequest:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          example: "Pooja Juneja"
+        email:
+          type: string
+          format: email
+          example: "pooja@example.com"
+
+    ServiceListing:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        category:
+          $ref: '#/components/schemas/Category'
+        user:
+          $ref: '#/components/schemas/User'
+        title:
+          type: string
+          example: "House Cleaning"
+        description:
+          type: string
+          example: "Full home deep cleaning service"
+        amount:
+          type: number
+          format: double
+          example: 499.99
+        unit:
+          type: string
+          example: "per visit"
+
+    ServiceRequest:
+      type: object
+      required: [category, user, title, amount]
+      properties:
+        category:
+          type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              format: int64
+              example: 1
+        user:
+          type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              format: int64
+              example: 1
+        title:
+          type: string
+          example: "House Cleaning"
+        description:
+          type: string
+          example: "Full home deep cleaning service"
+        amount:
+          type: number
+          format: double
+          example: 499.99
+        unit:
+          type: string
+          example: "per visit"
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          example: "2026-06-13T19:00:00"
+        status:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: "Not Found"
+        message:
+          type: string
+          example: "Category not found with id: 5"
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-06-13T19:00:00"
+            status: 404
+            error: "Not Found"
+            message: "Category not found with id: 5"
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              timestamp:
+                type: string
+              status:
+                type: integer
+                example: 400
+              error:
+                type: string
+                example: "Validation Failed"
+              details:
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  categoryName: "Category name is required"
