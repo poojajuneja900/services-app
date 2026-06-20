@@ -20,4 +20,7 @@ public class Category {
     @NotBlank(message = "Category name is required")
     @Column(name = "category_name", nullable = false)
     private String categoryName;
+
+    @Column(name = "parent_category_id")
+    private Long parentCategoryId;  // null means top-level category
 }

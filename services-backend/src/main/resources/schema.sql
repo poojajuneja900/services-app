@@ -9,8 +9,9 @@
 -- 1. Category Table
 -- ============================================
 CREATE TABLE IF NOT EXISTS category (
-    id            BIGSERIAL       PRIMARY KEY,
-    category_name VARCHAR(255)    NOT NULL
+    id                 BIGSERIAL       PRIMARY KEY,
+    category_name      VARCHAR(255)    NOT NULL,
+    parent_category_id BIGINT          DEFAULT NULL REFERENCES category(id)
 );
 
 -- ============================================

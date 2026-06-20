@@ -1,17 +1,27 @@
 import { useState, useEffect } from 'react';
 import { categoryApi } from '../api';
 
-function CategoryModal({ initial, onSave, onClose }) {
-  const [form, setForm] = useState({ categoryName: initial?.categoryName || '' });
-  const [error, setError] = useState('');
+function CategoryModal({ initial, allCategories, onSave, onClose }) {
+  const [form, setForm] = useState({
+    categoryName:      initial?.categoryName      || '',
+    parentCategoryId:  initial?.parentCategoryId  ?? '',
+  });
+  const [error, setError]   = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Exclude self from parent options to avoid self-reference
+  const parentOptions = allCategories.filter(c => c.id !== initial?.id);
 
   const handle = async (e) => {
     e.preventDefault();
     if (!form.categoryName.trim()) { setError('Category name is required'); return; }
+    const body = {
+      categoryName:     form.categoryName,
+      parentCategoryId: form.parentCategoryId === '' ? null : Number(form.parentCategoryId),
+    };
     setSaving(true);
     try {
-      await (initial ? categoryApi.update(initial.id, form) : categoryApi.create(form));
+      await (initial ? categoryApi.update(initial.id, body) : categoryApi.create(body));
       onSave();
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
@@ -28,10 +38,26 @@ function CategoryModal({ initial, onSave, onClose }) {
             <input
               placeholder="e.g. Home Services"
               value={form.categoryName}
-              onChange={e => setForm({ categoryName: e.target.value })}
+              onChange={e => setForm(f => ({ ...f, categoryName: e.target.value }))}
               autoFocus
             />
           </div>
+
+          <div className="form-group">
+            <label>Parent Category <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+            <select
+              value={form.parentCategoryId}
+              onChange={e => setForm(f => ({ ...f, parentCategoryId: e.target.value }))}
+            >
+              <option value="">— None (top-level category) —</option>
+              {parentOptions.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.parentCategoryId ? `    ↳ ${c.categoryName}` : c.categoryName}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
@@ -44,11 +70,53 @@ function CategoryModal({ initial, onSave, onClose }) {
   );
 }
 
+// Build a tree: top-level categories with their children
+function buildTree(categories) {
+  const topLevel = categories.filter(c => !c.parentCategoryId);
+  return topLevel.map(parent => ({
+    parent,
+    children: categories.filter(c => c.parentCategoryId === parent.id),
+  }));
+}
+
+function Row({ c, isChild, onEdit, onDelete }) {
+  return (
+    <tr>
+      <td><span className="badge">#{c.id}</span></td>
+      <td>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: isChild ? 24 : 0 }}>
+          {isChild && <span style={{ color: 'var(--text-muted)' }}>↳</span>}
+          <span style={{ fontWeight: isChild ? 400 : 500 }}>{c.categoryName}</span>
+          {!isChild && (
+            <span style={{
+              fontSize: '0.7rem', padding: '2px 8px', borderRadius: 99,
+              background: 'rgba(108,99,255,0.12)', color: 'var(--accent2)',
+              border: '1px solid rgba(108,99,255,0.2)', fontWeight: 600,
+            }}>Parent</span>
+          )}
+        </div>
+      </td>
+      <td>
+        {isChild
+          ? <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Sub-category of #{c.parentCategoryId}</span>
+          : <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Top-level</span>
+        }
+      </td>
+      <td>
+        <div className="actions">
+          <button className="btn btn-ghost btn-sm" onClick={() => onEdit(c)}>✏️ Edit</button>
+          <button className="btn btn-danger btn-sm" onClick={() => onDelete(c.id)}>🗑️ Delete</button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export default function Categories() {
-  const [data, setData]     = useState([]);
+  const [data, setData]       = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState('');
-  const [modal, setModal]   = useState(null); // null | 'create' | {id,...}
+  const [error, setError]     = useState('');
+  const [modal, setModal]     = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -60,17 +128,23 @@ export default function Categories() {
   useEffect(() => { load(); }, []);
 
   const del = async (id) => {
-    if (!confirm('Delete this category?')) return;
+    if (!confirm('Delete this category? Sub-categories will lose their parent.')) return;
     try { await categoryApi.delete(id); load(); }
     catch (err) { alert(err.message); }
   };
+
+  const tree    = buildTree(data);
+  const orphans = data.filter(c =>
+    c.parentCategoryId && !data.find(p => p.id === c.parentCategoryId)
+  );
+  const subCount = data.length - tree.length;
 
   return (
     <div>
       <div className="page-header">
         <div>
           <h2>Categories</h2>
-          <p>Manage service categories</p>
+          <p>Manage service categories &amp; sub-categories</p>
         </div>
         <button className="btn btn-primary" onClick={() => setModal('create')}>+ New Category</button>
       </div>
@@ -80,26 +154,36 @@ export default function Categories() {
       <div className="card">
         <div className="card-header">
           <h3>All Categories ({data.length})</h3>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {tree.length} parent · {subCount} sub-categor{subCount === 1 ? 'y' : 'ies'}
+          </span>
         </div>
+
         {loading ? (
           <div className="loading"><div className="spinner" /><p>Loading…</p></div>
         ) : data.length === 0 ? (
-          <div className="empty-state"><div className="empty-icon">🗂️</div><p>No categories yet. Create one!</p></div>
+          <div className="empty-state">
+            <div className="empty-icon">🗂️</div>
+            <p>No categories yet. Create one!</p>
+          </div>
         ) : (
           <table>
-            <thead><tr><th>ID</th><th>Category Name</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr><th>ID</th><th>Category Name</th><th>Type</th><th>Actions</th></tr>
+            </thead>
             <tbody>
-              {data.map(c => (
-                <tr key={c.id}>
-                  <td><span className="badge">#{c.id}</span></td>
-                  <td>{c.categoryName}</td>
-                  <td>
-                    <div className="actions">
-                      <button className="btn btn-ghost btn-sm" onClick={() => setModal(c)}>✏️ Edit</button>
-                      <button className="btn btn-danger btn-sm" onClick={() => del(c.id)}>🗑️ Delete</button>
-                    </div>
-                  </td>
-                </tr>
+              {tree.map(({ parent, children }) => (
+                <>
+                  <Row key={parent.id} c={parent} isChild={false}
+                    onEdit={setModal} onDelete={del} />
+                  {children.map(child => (
+                    <Row key={child.id} c={child} isChild={true}
+                      onEdit={setModal} onDelete={del} />
+                  ))}
+                </>
+              ))}
+              {orphans.map(c => (
+                <Row key={c.id} c={c} isChild={true} onEdit={setModal} onDelete={del} />
               ))}
             </tbody>
           </table>
@@ -109,6 +193,7 @@ export default function Categories() {
       {modal && (
         <CategoryModal
           initial={modal === 'create' ? null : modal}
+          allCategories={data}
           onSave={() => { setModal(null); load(); }}
           onClose={() => setModal(null)}
         />

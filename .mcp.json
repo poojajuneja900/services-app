@@ -2,9 +2,25 @@
   "mcpServers": {
     "github": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "postgres": {
+      "command": "node",
+      "args": [
+        "mcps/Postgres MCP/src/index.js"
+      ],
+      "env": {
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_DB": "serviceapp",
+        "POSTGRES_USER": "${DB_USERNAME}",
+        "POSTGRES_PASSWORD": "${DB_PASSWORD}"
       }
     }
   }
