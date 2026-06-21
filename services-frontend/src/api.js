@@ -1,7 +1,8 @@
-const BASE_URL = 'http://localhost:8080/api/v1';
+const BASE_URL = '/api/v1';
+const AUTH_URL = '/api/v1/auth';
 
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
+async function request(path, options = {}, baseUrl = BASE_URL) {
+  const res = await fetch(`${baseUrl}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   });
@@ -11,7 +12,15 @@ async function request(path, options = {}) {
   return data;
 }
 
+// ── Auth ─────────────────────────────────────
+export const authApi = {
+  register: (body) => request('/register', { method: 'POST', body: JSON.stringify(body) }, AUTH_URL),
+  login:    (body) => request('/login',    { method: 'POST', body: JSON.stringify(body) }, AUTH_URL),
+  logout:   ()     => request('/logout',   { method: 'POST' },                             AUTH_URL),
+};
+
 // ── Categories ──────────────────────────────
+
 export const categoryApi = {
   getAll:    ()         => request('/categories'),
   getById:   (id)       => request(`/categories/${id}`),
