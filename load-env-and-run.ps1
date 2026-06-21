@@ -29,4 +29,6 @@ Write-Host ""
 Write-Host "Starting Spring Boot with $($envVars.Count) env vars from .env ..."
 Write-Host ""
 
+$backendDir = Join-Path $PSScriptRoot "services-backend"
+Set-Location $backendDir
 mvn spring-boot:run
