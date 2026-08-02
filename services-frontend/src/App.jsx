@@ -1,26 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
 import './index.css';
-import Dashboard    from './pages/Dashboard';
-import Categories   from './pages/Categories';
-import Users        from './pages/Users';
-import Services     from './pages/Services';
+import Dashboard from './pages/Dashboard';
+import Categories from './pages/Categories';
+import Services from './pages/Services';
+import CreateService from './pages/CreateService';
 import RegisterPage from './pages/RegisterPage';
-import LoginPage    from './pages/LoginPage';
-import { authApi }  from './api';
+import LoginPage from './pages/LoginPage';
+import { authApi } from './api';
+import Users from './pages/Users';
 
 const PAGES = [
-  { id: 'dashboard',  label: 'Dashboard',  icon: '📊' },
+  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'categories', label: 'Categories', icon: '🗂️' },
-  { id: 'users',      label: 'Users',      icon: '👤' },
-  { id: 'services',   label: 'Services',   icon: '🛠️' },
+  { id: 'users', label: 'Users', icon: '👤' },
+  { id: 'services', label: 'Services', icon: '🛠️' },
+  { id: 'create-service', label: 'Create New Service', icon: '✨' },
 ];
 
 export default function App() {
-  const [user,       setUser]       = useState(null);
-  const [authView,   setAuthView]   = useState('register');
-  const [page,       setPage]       = useState('dashboard');
+  const [user, setUser] = useState(null);
+  const [authView, setAuthView] = useState('login');
+  const [page, setPage] = useState('dashboard');
   const [loggingOut, setLoggingOut] = useState(false);
-  const [dropOpen,   setDropOpen]   = useState(false);
+  const [dropOpen, setDropOpen] = useState(false);
   const dropRef = useRef(null);
 
   /* Close dropdown when clicking outside */
@@ -35,15 +37,21 @@ export default function App() {
   }, []);
 
   /* ── Auth handlers ── */
-  const handleRegistered = (userData) => setUser(userData);
-  const handleLoggedIn   = (userData) => setUser(userData);
+  const handleRegistered = (userData) => {
+    setUser(userData);
+    if (userData.userType !== 'admin') setPage('services');
+  };
+  const handleLoggedIn = (userData) => {
+    setUser(userData);
+    if (userData.userType !== 'admin') setPage('services');
+  };
 
   const handleLogout = async () => {
     setLoggingOut(true);
     setDropOpen(false);
     try { await authApi.logout(); } catch (_) { /* ignore */ }
     setUser(null);
-    setAuthView('register');
+    setAuthView('login');
     setLoggingOut(false);
   };
 
@@ -51,23 +59,29 @@ export default function App() {
   if (!user) {
     return authView === 'register'
       ? <RegisterPage
-          onRegistered={handleRegistered}
-          onGoToLogin={() => setAuthView('login')}
-        />
+        onRegistered={handleRegistered}
+        onGoToLogin={() => setAuthView('login')}
+      />
       : <LoginPage
-          onLoggedIn={handleLoggedIn}
-          onGoToRegister={() => setAuthView('register')}
-        />;
+        onLoggedIn={handleLoggedIn}
+        onGoToRegister={() => setAuthView('register')}
+      />;
   }
 
   /* ── Logged in → full dashboard ── */
+  const allowedPages = PAGES.filter(p => {
+    if (user.userType === 'admin') return true;
+    return p.id === 'services' || p.id === 'create-service';
+  });
+
   const renderPage = () => {
     switch (page) {
-      case 'dashboard':  return <Dashboard />;
-      case 'categories': return <Categories />;
-      case 'users':      return <Users />;
-      case 'services':   return <Services />;
-      default:           return <Dashboard />;
+      case 'dashboard': return allowedPages.find(p => p.id === 'dashboard') ? <Dashboard /> : null;
+      case 'categories': return allowedPages.find(p => p.id === 'categories') ? <Categories /> : null;
+      case 'users': return allowedPages.find(p => p.id === 'users') ? <Users /> : null;
+      case 'services': return allowedPages.find(p => p.id === 'services') ? <Services currentUser={user} /> : null;
+      case 'create-service': return allowedPages.find(p => p.id === 'create-service') ? <CreateService currentUser={user} onCreated={() => setPage('services')} /> : null;
+      default: return allowedPages.find(p => p.id === 'dashboard') ? <Dashboard /> : (allowedPages.find(p => p.id === 'services') ? <Services currentUser={user} /> : null);
     }
   };
 
@@ -76,10 +90,10 @@ export default function App() {
       <aside className="sidebar">
         <div className="sidebar-logo">
           <h1>⚡ ServiceApp</h1>
-          <p>Admin Dashboard</p>
+
         </div>
         <nav>
-          {PAGES.map(p => (
+          {allowedPages.map(p => (
             <button
               key={p.id}
               className={`nav-item ${page === p.id ? 'active' : ''}`}
@@ -100,7 +114,7 @@ export default function App() {
       {/* ── Top bar ── */}
       <header className="topbar">
         <span className="topbar-title">
-          {PAGES.find(p => p.id === page)?.icon} {PAGES.find(p => p.id === page)?.label}
+          {allowedPages.find(p => p.id === page)?.icon} {allowedPages.find(p => p.id === page)?.label}
         </span>
 
         {/* User dropdown */}
@@ -128,7 +142,7 @@ export default function App() {
                 <div>
                   <div className="user-dropdown-name">{user.name}</div>
                   <div className="user-dropdown-email">{user.email}</div>
-                  <span className="badge" style={{ marginTop: '4px', fontSize: '0.7rem' }}>
+                  <span className="badge" style={{ marginTop: '4px', fontSize: '0.7rem', textTransform: 'capitalize' }}>
                     {user.userType}
                   </span>
                 </div>

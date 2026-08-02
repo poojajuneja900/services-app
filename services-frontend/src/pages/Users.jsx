@@ -5,6 +5,8 @@ function UserModal({ initial, onSave, onClose }) {
   const [form, setForm] = useState({
     name:  initial?.name  || '',
     email: initial?.email || '',
+    userType: initial?.userType || 'user',
+    password: '',
   });
   const [error, setError]   = useState('');
   const [saving, setSaving] = useState(false);
@@ -13,7 +15,9 @@ function UserModal({ initial, onSave, onClose }) {
 
   const handle = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim()) { setError('All fields are required'); return; }
+    if (!form.name.trim() || !form.email.trim() || (!initial && !form.password.trim())) { 
+      setError('All fields are required'); return; 
+    }
     setSaving(true);
     try {
       await (initial ? userApi.update(initial.id, form) : userApi.create(form));
@@ -35,6 +39,19 @@ function UserModal({ initial, onSave, onClose }) {
           <div className="form-group">
             <label>Email</label>
             <input type="email" placeholder="e.g. pooja@example.com" value={form.email} onChange={set('email')} />
+          </div>
+          {!initial && (
+            <div className="form-group">
+              <label>Password</label>
+              <input type="password" placeholder="Create a password" value={form.password} onChange={set('password')} />
+            </div>
+          )}
+          <div className="form-group">
+            <label>Account Type</label>
+            <select value={form.userType} onChange={set('userType')}>
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
@@ -93,7 +110,7 @@ export default function Users() {
           <div className="empty-state"><div className="empty-icon">👤</div><p>No users yet.</p></div>
         ) : (
           <table>
-            <thead><tr><th>ID</th><th>User</th><th>Email</th><th>Actions</th></tr></thead>
+            <thead><tr><th>ID</th><th>User</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
             <tbody>
               {data.map(u => (
                 <tr key={u.id}>
@@ -108,6 +125,11 @@ export default function Users() {
                     {u.name}
                   </td>
                   <td style={{ color: 'var(--text-muted)' }}>{u.email}</td>
+                  <td>
+                    <span className="badge" style={{ textTransform: 'capitalize' }}>
+                      {u.userType}
+                    </span>
+                  </td>
                   <td>
                     <div className="actions">
                       <button className="btn btn-ghost btn-sm" onClick={() => setModal(u)}>✏️ Edit</button>

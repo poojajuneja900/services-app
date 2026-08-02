@@ -23,20 +23,22 @@ public class UserService {
     // ── Auth endpoints ─────────────────────────────────────────────────────────
 
     public AuthResponse register(RegisterRequest req) {
-        if (userRepository.existsByEmail(req.getEmail())) {
-            throw new IllegalArgumentException("Email already in use: " + req.getEmail());
+        String email = req.getEmail().toLowerCase();
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new IllegalArgumentException("Email already in use: " + email);
         }
         User user = new User();
         user.setName(req.getName());
-        user.setEmail(req.getEmail());
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(req.getPassword()));
-        user.setUserType(req.getUserType() != null ? req.getUserType() : "customer");
+        user.setUserType(req.getUserType() != null ? req.getUserType() : "user");
         User saved = userRepository.save(user);
         return toAuthResponse(saved, "Registration successful");
     }
 
     public AuthResponse login(LoginRequest req, HttpSession session) {
-        User user = userRepository.findByEmail(req.getEmail())
+        String email = req.getEmail().toLowerCase();
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Invalid email or password");
@@ -63,9 +65,11 @@ public class UserService {
     }
 
     public User create(User user) {
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new IllegalArgumentException("Email already in use: " + user.getEmail());
+        String email = user.getEmail().toLowerCase();
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new IllegalArgumentException("Email already in use: " + email);
         }
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
@@ -73,7 +77,7 @@ public class UserService {
     public User update(Long id, User updated) {
         User existing = getById(id);
         existing.setName(updated.getName());
-        existing.setEmail(updated.getEmail());
+        existing.setEmail(updated.getEmail() != null ? updated.getEmail().toLowerCase() : existing.getEmail());
         if (updated.getUserType() != null) {
             existing.setUserType(updated.getUserType());
         }

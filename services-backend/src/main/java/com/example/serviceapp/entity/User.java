@@ -32,5 +32,5 @@ public class User {
     private String password;
 
     @Column(name = "user_type", nullable = false)
-    private String userType = "customer";
+    private String userType = "user";
 }

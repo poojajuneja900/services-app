@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { authApi } from '../api';
 
 export default function RegisterPage({ onRegistered, onGoToLogin }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', userType: 'customer' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', userType: 'user' });
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState('');
 
@@ -84,19 +84,6 @@ export default function RegisterPage({ onRegistered, onGoToLogin }) {
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="reg-userType">Account Type</label>
-            <select
-              id="reg-userType"
-              name="userType"
-              value={form.userType}
-              onChange={handleChange}
-            >
-              <option value="customer">Customer</option>
-              <option value="provider">Service Provider</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
 
           <button
             id="btn-register"

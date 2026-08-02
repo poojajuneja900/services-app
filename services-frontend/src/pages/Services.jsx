@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { serviceApi, categoryApi, userApi } from '../api';
 
-function ServiceModal({ initial, categories, users, onSave, onClose }) {
+function ServiceModal({ initial, categories, currentUser, onSave, onClose }) {
   const [form, setForm] = useState({
     title:       initial?.title       || '',
     description: initial?.description || '',
     amount:      initial?.amount      || '',
     unit:        initial?.unit        || '',
-    categoryId:  initial?.category?.id || '',
-    userId:      initial?.user?.id     || '',
+    mainCategoryId: initial?.category?.parentCategoryId || (initial?.category ? initial?.category?.id : ''),
+    categoryId: initial?.category?.parentCategoryId ? initial?.category?.id : '',
   });
   const [error, setError]   = useState('');
   const [saving, setSaving] = useState(false);
@@ -17,16 +17,17 @@ function ServiceModal({ initial, categories, users, onSave, onClose }) {
 
   const handle = async (e) => {
     e.preventDefault();
-    if (!form.title || !form.amount || !form.categoryId || !form.userId) {
-      setError('Title, amount, category and user are required'); return;
+    const finalCategoryId = form.categoryId || form.mainCategoryId;
+    if (!form.title || !form.amount || !finalCategoryId) {
+      setError('Title, amount, and category are required'); return;
     }
     const body = {
       title:       form.title,
       description: form.description,
       amount:      parseFloat(form.amount),
       unit:        form.unit,
-      category:    { id: parseInt(form.categoryId) },
-      user:        { id: parseInt(form.userId) },
+      category:    { id: parseInt(finalCategoryId) },
+      user:        { id: initial?.user?.id || currentUser.id },
     };
     setSaving(true);
     try {
@@ -62,18 +63,41 @@ function ServiceModal({ initial, categories, users, onSave, onClose }) {
           </div>
           <div className="form-group">
             <label>Category</label>
-            <select value={form.categoryId} onChange={set('categoryId')}>
+            <select 
+              value={form.mainCategoryId} 
+              onChange={(e) => setForm(f => ({ ...f, mainCategoryId: e.target.value, categoryId: '' }))}
+            >
               <option value="">Select category…</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.categoryName}</option>)}
+              {categories.filter(c => !c.parentCategoryId).map(c => <option key={c.id} value={c.id}>{c.categoryName}</option>)}
             </select>
           </div>
-          <div className="form-group">
-            <label>User (Provider)</label>
-            <select value={form.userId} onChange={set('userId')}>
-              <option value="">Select user…</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.name} — {u.email}</option>)}
-            </select>
-          </div>
+          
+          {form.mainCategoryId && (() => {
+            const selectedMainCat = categories.find(c => c.id === Number(form.mainCategoryId));
+            const isOthers = selectedMainCat && selectedMainCat.categoryName.toLowerCase() === 'others';
+            
+            if (isOthers) return null;
+
+            return (
+              <div className="form-group">
+                <label>Sub Category</label>
+                <select 
+                  value={form.categoryId} 
+                  onChange={set('categoryId')}
+                  disabled={!form.mainCategoryId || !categories.some(c => c.parentCategoryId === Number(form.mainCategoryId))}
+                >
+                  <option value="">
+                    {!form.mainCategoryId 
+                      ? "Select main category first…" 
+                      : !categories.some(c => c.parentCategoryId === Number(form.mainCategoryId)) 
+                        ? "No subcategories available" 
+                        : "Select sub category…"}
+                  </option>
+                  {form.mainCategoryId && categories.filter(c => c.parentCategoryId === Number(form.mainCategoryId)).map(c => <option key={c.id} value={c.id}>{c.categoryName}</option>)}
+                </select>
+              </div>
+            );
+          })()}
           <div className="modal-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
@@ -86,10 +110,9 @@ function ServiceModal({ initial, categories, users, onSave, onClose }) {
   );
 }
 
-export default function Services() {
+export default function Services({ currentUser }) {
   const [data, setData]           = useState([]);
   const [categories, setCategories] = useState([]);
-  const [users, setUsers]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
   const [modal, setModal]         = useState(null);
@@ -97,10 +120,10 @@ export default function Services() {
   const load = async () => {
     setLoading(true);
     try {
-      const [svcs, cats, usrs] = await Promise.all([
-        serviceApi.getAll(), categoryApi.getAll(), userApi.getAll(),
+      const [svcs, cats] = await Promise.all([
+        serviceApi.getAll(), categoryApi.getAll()
       ]);
-      setData(svcs); setCategories(cats); setUsers(usrs);
+      setData(svcs); setCategories(cats);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -120,7 +143,6 @@ export default function Services() {
           <h2>Services</h2>
           <p>Manage service listings</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setModal('create')}>+ New Service</button>
       </div>
 
       {error && <div className="alert alert-error">⚠ {error}</div>}
@@ -172,7 +194,7 @@ export default function Services() {
         <ServiceModal
           initial={modal === 'create' ? null : modal}
           categories={categories}
-          users={users}
+          currentUser={currentUser}
           onSave={() => { setModal(null); load(); }}
           onClose={() => setModal(null)}
         />
